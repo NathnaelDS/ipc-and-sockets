@@ -47,4 +47,40 @@ class ClientSocket {
             serverAddress.sin_addr.s_addr = inet_addr(
                         inet_ntoa(*((struct in_addr *)host->h_addr)));
         }
+
+        
+        int send(char *message){
+            // send message to server
+            msg = (char *) malloc(64);
+            char *message = "Client says Hello!";
+            snprintf(msg, 64, "%s", message);
+
+            n_bytes = sendto(sockfd, msg, 64, 0, (struct sockaddr *) &serverAddress, sizeof(serverAddress));
+            if (n_bytes < 0)
+            {
+                printf("Error: failed to connect to %s:%d\n", host, serverAddress.sin_port);
+                close(sockfd);
+                exit(1);
+            }
+            free(msg);
+            return 1;
+        }
+        
+
+        char* receive(){
+            // receive message from server
+            msg = (char *) malloc(1024);
+            n_bytes = recvfrom(sockfd, msg, BUFSIZE, 0,
+                    (struct sockaddr *) &serverAddress,
+                    (socklen_t *) &serverAddress);
+            if (n_bytes < 0)
+            {
+                perror("failed to receive message");
+                exit(1);
+            }
+            char *message = msg;
+            // ... get the message
+            free(msg);
+            return message;
+        }   
 }
