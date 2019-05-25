@@ -12,19 +12,11 @@ class ClientSocket
     struct sockaddr_in serverAddress;
 
   public:
-    ClientSocket(int method)
-    {
-    }
+    ClientSocket(int method);
 
-    void connectTo(char *ipAddress, int portNumber)
-    {
-    }
+    void connectTo(char *ipAddress, int portNumber);
 
-    int send(char *message)
-    {
-    }
+    int send(char *message);
 
-    char *receive()
-    {
-    }
+    char *receive();
 }
