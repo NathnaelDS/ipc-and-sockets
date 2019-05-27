@@ -1,101 +1,91 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#include <netdb.h>
+#include "ClientSocket.h"
 
-class ClientSocket
+ClientSocket::ClientSocket(char *method)
 {
+    // Choose whether to use Stream or datagram
+    transferMethod = method;
 
-  private:
-    char *ip;
-    int portNo;
-    int transferMethod;
+    printf("%s\n", transferMethod);
 
-    char *msg;
-    int sockfd, n_bytes;
-    struct hostent *host;
-    struct sockaddr_in serverAddress;
-
-  public:
-    ClientSocket(int method)
+    // Set up a socket file descriptor. SOCK_DGRAM or SOCK_STREAM
+    if (strcmp(method, "UDP") != 0)
     {
-        // Choose whether to use Stream or datagram
-        transferMethod = method;
-
-        
-        // Set up a socket file descriptor. SOCK_DGRAM or SOCK_STREAM
-        if (method == 1)
+        if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
         {
-            if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
-            {
-                perror("failed to get socket descriptor");
-                exit(1);
-            }
-        } else if(method ==2){
-            if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-            {
-                perror("failed to get socket descriptor");
-                exit(1);
-            }
-        } else {
-            perror("Usage: 1 for Datagram, 2 for Stream");
-        }
-    }
-
-    // Connect to a server given an IP and Port number
-    void connectTo(char *ipAddress, int portNumber)
-    {
-        ip = ipAddress;
-        portNo = portNumber;
-
-        // Get the binary form of the IP Address
-        if ((host = gethostbyname(ip)) == NULL)
-        {
-            perror("failed to resolve host");
+            perror("failed to get socket descriptor");
             exit(1);
         }
-
-        // setting up server address
-        serverAddress.sin_family = AF_INET;
-        serverAddress.sin_port = htons(portNo);
-        serverAddress.sin_addr.s_addr = inet_addr(
-            inet_ntoa(*((struct in_addr *)host->h_addr)));
     }
-
-    int send(char *message)
+    else if (strcmp(method, "TCP") != 0)
     {
-        // send message to server
-        msg = (char *)malloc(64);
-        char *message = "Client says Hello!";
-        snprintf(msg, 64, "%s", message);
-
-        n_bytes = sendto(sockfd, msg, 64, 0, (struct sockaddr *)&serverAddress, sizeof(serverAddress));
-        if (n_bytes < 0)
+        if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
         {
-            printf("Error: failed to connect to %s:%d\n", host, serverAddress.sin_port);
-            close(sockfd);
+            perror("failed to get socket descriptor");
             exit(1);
         }
-        free(msg);
-        return 1;
+    }
+    else
+    {
+        printf("%s\n", method);
+        perror("Usage: 1 for Datagram, 2 for Stream");
+    }
+}
+
+// Connect to a server given an IP and Port number
+void ClientSocket::connectTo(char *ipAddress, int portNumber)
+{
+    ip = ipAddress;
+    portNo = portNumber;
+
+    printf("IP: %s and port: %d \n", ip, portNo);
+
+    if (inet_pton(AF_INET, ipAddress, &serverAddress.sin_addr) < 1)
+    {
+        perror("pton failed");
     }
 
-    char *receive()
+    // setting up server address
+    serverAddress.sin_family = AF_INET;
+    serverAddress.sin_port = htons(portNo);
+
+    printf("port: %d \n", serverAddress.sin_port);
+
+    if (connect(sockfd, (struct sockaddr *)&serverAddress, sizeof(serverAddress)) < 0)
     {
-        // receive message from server
-        msg = (char *)malloc(1024);
-        n_bytes = recvfrom(sockfd, msg, BUFSIZE, 0,
-                           (struct sockaddr *)&serverAddress,
-                           (socklen_t *)&serverAddress);
-        if (n_bytes < 0)
-        {
-            perror("failed to receive message");
-            exit(1);
-        }
-        char *message = msg;
-        // ... get the message
-        free(msg);
-        return message;
+        perror("Connect failed");
+        exit(0);
     }
+}
+
+int ClientSocket::send(char *message)
+{
+    // send message to server
+    n_bytes = sendto(sockfd, message, strlen(message), 0, (struct sockaddr *)&serverAddress, sizeof(serverAddress));
+    if (n_bytes < 0)
+    {
+        printf("Error: failed to connect to %s:%d\n", host->h_name, serverAddress.sin_port);
+        close(sockfd);
+        exit(1);
+    }
+    return 1;
+}
+
+char *ClientSocket::receive()
+{
+    // receive message from server
+    char message[1024];
+    // n_bytes = recv(sockfd, (char *)message, 1024, MSG_WAITALL);
+    n_bytes = recvfrom(sockfd, message, 1024, MSG_WAITALL,
+                       (struct sockaddr *)&serverAddress,
+                       (socklen_t *)&serverAddress);
+
+    if (n_bytes < 0)
+    {
+        perror("failed to receive message");
+        close(sockfd);
+        exit(1);
+    }
+    // message[n_bytes] = '\0';
+    printf("%s\n", message);
+    return message;
 }

@@ -2,12 +2,12 @@
 
 int main(int argc, char const *argv[])
 {
-    // Pass 1 for Datagram socket, 2 for Stream socket
+    // Pass UDP for Datagram socket, TCP for Stream socket
+    ClientSocket cs("TCP");
 
-    ClientSocket cs(1);
-
-    cs.connectTo("192.168.1.104", 6001);
-    cs.send("chu");
+    // cs.connectTo("192.168.1.102", 5000);
+    cs.connectTo("127.0.0.1", 3434);
+    cs.send("nope");
     cs.receive();
     return 0;
 }
